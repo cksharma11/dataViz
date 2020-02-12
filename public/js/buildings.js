@@ -14,7 +14,7 @@ const drawBuildings = buildings => {
   const y = d3
     .scaleLinear()
     .domain([0, maxHeight])
-    .range([0, height]);
+    .range([height, 0]);
 
   const yAxis = d3
     .axisLeft(y)
@@ -66,10 +66,10 @@ const drawBuildings = buildings => {
   const newReactangles = rectangles
     .enter()
     .append("rect")
-    .attr("y", 0)
+    .attr("y", b => y(b.height))
     .attr("x", b => x(b.name))
     .attr("width", x.bandwidth)
-    .attr("height", b => y(b.height))
+    .attr("height", b => y(0) - y(b.height))
     .attr("fill", "grey");
 };
 
