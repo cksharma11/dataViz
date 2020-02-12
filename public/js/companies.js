@@ -1,6 +1,14 @@
 const drawCompanies = companies => {
-  const maxHeight = _.maxBy(companies, c => +c.CMP).CMP;
-  console.log(maxHeight);
+  const { Name, ...b } = _.first(companies);
+  const fields = _.keys(b);
+  let field = _.first(fields);
+
+  setInterval(() => {
+    fields.push(fields.shift());
+    field = _.first(fields);
+  }, 2000);
+
+  const maxHeight = _.maxBy(companies, field)[field];
   const chartSize = { width: 800, height: 600 };
   const margin = { left: 100, right: 10, top: 10, bottom: 150 };
   const width = chartSize.width - (margin.left + margin.right);
@@ -16,6 +24,8 @@ const drawCompanies = companies => {
     .scaleLinear()
     .domain([0, maxHeight])
     .range([height, 0]);
+
+  const c = d3.scaleOrdinal(d3.schemeDark2);
 
   const yAxis = d3
     .axisLeft(y)
@@ -44,7 +54,7 @@ const drawCompanies = companies => {
     .attr("class", "y axis-label")
     .attr("x", -height / 2)
     .attr("y", -60)
-    .text("CMP")
+    .text(field)
     .attr("transform", "rotate (-90)");
 
   g.append("g")
@@ -67,15 +77,18 @@ const drawCompanies = companies => {
   const newReactangles = rectangles
     .enter()
     .append("rect")
-    .attr("y", b => y(b.CMP))
+    .attr("y", b => y(b[field]))
     .attr("x", b => x(b.Name))
     .attr("width", x.bandwidth)
-    .attr("height", b => y(0) - y(b.CMP))
-    .attr("fill", "grey");
+    .attr("height", b => y(0) - y(b[field]))
+    .attr("fill", b => c(b.Name));
 };
 
 const main = () => {
-  d3.csv("data/companies.csv").then(drawCompanies);
+  d3.csv("data/companies.csv", ({ Name, ...rest }) => {
+    Object.keys(rest).forEach(c => (rest[c] = +rest[c]));
+    return { Name, ...rest };
+  }).then(drawCompanies);
 };
 
 window.onload = main;
