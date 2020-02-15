@@ -18,113 +18,84 @@ const formats = {
 
 const c = d3.scaleOrdinal(d3.schemeCategory10);
 
-const drawCompanies = companies => {
-  const y = d3
-    .scaleLinear()
-    .domain([0, _.maxBy(companies, "CMP").CMP])
-    .range([height, 0]);
-  const x = d3
-    .scaleBand()
-    .range([0, width])
-    .domain(_.map(companies, "Name"))
-    .padding(0.3);
+const initChart = () => {
   const svg = d3
     .select("#chart-area svg")
     .attr("height", chartSize.height)
     .attr("width", chartSize.width);
-  const companiesG = svg
+
+  const g = svg
     .append("g")
+    .attr("class", "companies")
     .attr("transform", `translate(${margin.left},${margin.top})`);
-  const rectangles = companiesG.selectAll("rect").data(companies, c => c.Name);
-  const newRects = rectangles.enter().append("rect");
-  newRects
-    .attr("y", b => y(b.CMP))
-    .attr("x", b => x(b.Name))
-    .attr("width", x.bandwidth)
-    .attr("height", b => y(0) - y(b.CMP))
-    .attr("fill", b => c(b.Name));
-  companiesG
-    .append("text")
+
+  g.append("text")
     .attr("x", width / 2)
     .attr("y", height + 140)
     .text("Companies")
     .attr("class", "x axis-label");
-  companiesG
-    .append("text")
+
+  g.append("text")
     .text("CMP")
     .attr("transform", "rotate(-90)")
     .attr("x", -height / 2)
     .attr("y", -60)
     .attr("class", "y axis-label");
-  const yAxis = d3
-    .axisLeft(y)
-    .tickFormat(formats["CMP"])
-    .ticks(10);
-  companiesG
-    .append("g")
-    .attr("class", "y-axis")
-    .call(yAxis);
-  const xAxis = d3.axisBottom(x);
-  companiesG
-    .append("g")
+
+  g.append("g")
     .attr("class", "x-axis")
-    .attr("transform", `translate(0, ${height})`)
-    .call(xAxis);
-  companiesG
-    .selectAll(".x-axis text")
+    .attr("transform", `translate(0, ${height})`);
+
+  g.selectAll(".x-axis text")
     .attr("text-anchor", "end")
     .attr("x", -5)
     .attr("y", 10)
     .attr("transform", "rotate(-40)");
+
+  g.append("g").attr("class", "y-axis");
 };
 
 const updateCompanies = function(companies, fieldName) {
-  const svg = d3.select("#chart-area svg");
-  svg.select(".y.axis-label").text(fieldName);
+  const g = d3.select("#chart-area svg .companies");
   const maxValue = _.get(_.maxBy(companies, fieldName), fieldName, 0);
+  const rects = g.selectAll("rect").data(companies, c => c.Name);
+
   const y = d3
     .scaleLinear()
     .domain([0, maxValue])
     .range([height, 0]);
+
+  const xAxis = d3.axisBottom(x);
   const yAxis = d3
     .axisLeft(y)
     .tickFormat(formats[fieldName])
     .ticks(10);
-  svg.select(".y-axis").call(yAxis);
-  const t = d3
-    .transition()
-    .duration(1000)
-    .ease(d3.easeLinear);
-  svg
-    .selectAll("rect")
-    .data(companies, c => c.Name)
-    .exit()
-    .remove()
-    .transition(t);
+
   const x = d3
     .scaleBand()
     .range([0, width])
     .domain(_.map(companies, "Name"))
     .padding(0.3);
-  const xAxis = d3.axisBottom(x);
 
-  svg
-    .select("g")
-    .selectAll("rect")
-    .data(companies, c => c.Name)
+  g.select(".x-axis").call(xAxis);
+  g.select(".y-axis").call(yAxis);
+
+  g.select(".y.axis-label").text(fieldName);
+  const t = d3
+    .transition()
+    .duration(1000)
+    .ease(d3.easeLinear);
+
+  rects.exit().remove();
+
+  rects
     .enter()
     .append("rect")
     .attr("x", b => x(b.Name))
+    .attr("fill", b => c(b.Name))
     .attr("y", b => y(0))
     .attr("width", x.bandwidth)
-    .transition(t)
-    .attr("height", b => y(0) - y(b[fieldName]))
-    .attr("fill", b => c(b.Name));
-
-  svg.select(".x-axis").call(xAxis);
-  svg
-    .selectAll("rect")
-    .data(companies, c => c.Name)
+    .merge(rects)
     .transition(t)
     .attr("y", c => y(c[fieldName]))
     .attr("x", c => x(c.Name))
@@ -147,9 +118,10 @@ const frequentlyMoveCompanies = (src, dest) => {
 
 const main = () => {
   d3.csv("data/companies.csv", parseNumerics).then(companies => {
-    drawCompanies(companies);
+    initChart();
     const fields = "CMP,PE,MarketCap,DivYld,QNetProfit,QSales,ROCE".split(",");
     let step = 1;
+    updateCompanies(companies, fields[step++ % fields.length]);
     setInterval(
       () => updateCompanies(companies, fields[step++ % fields.length]),
       2000
