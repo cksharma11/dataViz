@@ -121,9 +121,9 @@ const main = () => {
     initChart();
     const fields = "CMP,PE,MarketCap,DivYld,QNetProfit,QSales,ROCE".split(",");
     let step = 1;
-    updateCompanies(companies, fields[step++ % fields.length]);
+    updatePrices(companies, fields[step++ % fields.length]);
     setInterval(
-      () => updateCompanies(companies, fields[step++ % fields.length]),
+      () => updatePrices(companies, fields[step++ % fields.length]),
       2000
     );
     frequentlyMoveCompanies(companies, []);

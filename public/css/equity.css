@@ -1,0 +1,44 @@
+html {
+  margin: 10px;
+}
+
+svg {
+  border: 1px solid black;
+}
+
+.axis-label {
+  font-size: 20px;
+  text-anchor: middle;
+}
+
+.x-axis text {
+  font-weight: bold;
+  /* transform: rotate(-40deg); */
+}
+
+.close {
+  fill : none;
+  stroke: black;
+  stroke-width: 3px;
+}
+
+.sma {
+  fill : none;
+  stroke: blue;
+  stroke-width: 2px;
+}
+
+.container {
+  margin: 10px;
+}
+
+#slider-container {
+  position: relative;
+  height:25px;
+  background-color: #eeeef5;
+}
+
+#range-label {
+  text-align: center;
+  font-weight: bold;
+}
