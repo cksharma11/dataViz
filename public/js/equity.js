@@ -17,13 +17,6 @@ const analyseData = quotes => {
   }
 };
 
-const drawEquityChart = quotes => {
-  initChart();
-  analyseData(quotes, 100);
-  updatePrices(quotes);
-  createRangeBar(quotes);
-};
-
 const initChart = () => {
   const svg = d3
     .select("#chart-area svg")
@@ -142,6 +135,13 @@ const updatePrices = function(quotes) {
 const toNumericFormat = ({ Date, Volume, AdjClose, ...rest }) => {
   _.forEach(rest, (v, k) => (rest[k] = +v));
   return { Date, ...rest, time: new this.Date(Date) };
+};
+
+const drawEquityChart = quotes => {
+  initChart();
+  analyseData(quotes, 100);
+  updatePrices(quotes);
+  createRangeBar(quotes);
 };
 
 const main = () => {
