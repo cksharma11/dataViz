@@ -21,7 +21,7 @@ const drawEquityChart = quotes => {
   initChart();
   analyseData(quotes, 100);
   updatePrices(quotes);
-  createRangeBar();
+  createRangeBar(quotes);
 };
 
 const initChart = () => {
@@ -64,14 +64,38 @@ const initChart = () => {
   prices.append("g").attr("class", "y-axis");
 };
 
-const createRangeBar = () => {
-  const slider = createD3RangeSlider(2008, 2020, "#slider-container");
+const formatTime = ms => {
+  return new this.Date(ms).toJSON().split("T")[0];
+};
+
+const isBetweenDate = (date, start, end) => {
+  return date > start && date < end;
+};
+
+const getRangeData = (quotes, startDate, endDate) => {
+  const rangeQuotes = quotes.filter(q =>
+    isBetweenDate(q.time, startDate, endDate)
+  );
+  return rangeQuotes;
+};
+
+const createRangeBar = quotes => {
+  const startDate = _.first(quotes).time.getTime();
+  const lastDate = _.last(quotes).time.getTime();
+
+  const slider = createD3RangeSlider(startDate, lastDate, "#slider-container");
 
   slider.onChange(newRange => {
-    d3.select("#range-label").text(newRange.begin + " - " + newRange.end);
+    d3.select("#range-label").text(
+      formatTime(newRange.begin) + " - " + formatTime(newRange.end)
+    );
+
+    newQuotes = getRangeData(quotes, newRange.begin, newRange.end);
+    d3.selectAll("path").remove();
+    updatePrices(newQuotes);
   });
 
-  slider.range(2008, 2010);
+  slider.range(startDate, lastDate);
 };
 
 const updatePrices = function(quotes) {
@@ -80,12 +104,13 @@ const updatePrices = function(quotes) {
 
   const minCP = _.get(_.minBy(quotes, "Close"), "Close", 0);
   const maxCP = _.get(_.maxBy(quotes, "Close"), "Close", 0);
+  const minSMA = _.get(_.minBy(quotes, "sma"), "sma", 0);
 
   const g = d3.select("#chart-area svg .prices");
 
   const y = d3
     .scaleLinear()
-    .domain([minCP, maxCP])
+    .domain([Math.min(minCP, minSMA), maxCP])
     .range([height, 0]);
 
   const x = d3
@@ -111,7 +136,7 @@ const updatePrices = function(quotes) {
 
   g.append("path")
     .attr("class", "sma")
-    .attr("d", line("sma")(quotes.slice(99)));
+    .attr("d", line("sma")(quotes.filter(q => q.sma)));
 };
 
 const toNumericFormat = ({ Date, Volume, AdjClose, ...rest }) => {
