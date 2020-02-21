@@ -46,3 +46,7 @@ svg {
 .stats {
   display: flex;
 }
+
+.tick line{
+  stroke: lightgray;
+}

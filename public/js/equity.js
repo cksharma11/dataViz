@@ -158,8 +158,8 @@ const updatePrices = function(quotes) {
     .range([0, width])
     .domain([fq.time, lq.time]);
 
-  const xAxis = d3.axisBottom(x);
-  const yAxis = d3.axisLeft(y).ticks(10);
+  const xAxis = d3.axisBottom(x).ticks(20).tickSize(-y.range()[0]);
+  const yAxis = d3.axisLeft(y).ticks(20).tickSize(-x.range()[1]);
 
   g.select(".x-axis").call(xAxis);
   g.select(".y-axis").call(yAxis);
@@ -180,38 +180,44 @@ const updatePrices = function(quotes) {
 };
 
 const toNumericFormat = ({ Date, Volume, AdjClose, ...rest }) => {
-  _.forEach(rest, (v, k) => (rest[k] = +v));
+  _.forEach(rest, (v, k) => (rest[k] = _.round(+v)));
   return { Date, ...rest, time: new this.Date(Date) };
 };
 
-const getStats = transactions => {
-  const stats = {};
-  stats.totalPlayed = transactions.length;
-  const winTxn = transactions.filter(tr => tr.sell.Close >= tr.buy.Close);
-  const lossesTxn = transactions.filter(tr => tr.sell.Close < tr.buy.Close);
+const createStats = transactions => {
+  const totalPlayed = transactions.length;
+  const winTxn = transactions.filter(t => t.sell.Close >= t.buy.Close);
+  const lossTxns = transactions.filter(t => t.sell.Close < t.buy.Close);
+  const wins = winTxn.length;
+  const losses = lossTxns.length;
 
-  stats.wins = winTxn.length;
-  stats.losses = lossesTxn.length;
-
-  stats.winPercentage = (winTxn.length / stats.totalPlayed) * 100;
-
-  stats.winAvg =
-    winTxn.reduce((sum, tr) => sum + (tr.sell.Close - tr.buy.Close), 0) /
-    winTxn.length;
-
-  stats.lossAvg =
-    lossesTxn.reduce((sum, tr) => sum + (tr.buy.Close - tr.sell.Close), 0) /
-    lossesTxn.length;
-
-  stats.totalProfit = transactions.reduce(
-    (sum, tr) => sum + (tr.sell.Close - tr.buy.Close),
+  const winPercentage = (winTxn.length / totalPlayed) * 100;
+  const totalWin = winTxn.reduce((s, t) => s + (t.sell.Close - t.buy.Close), 0);
+  const winAvg = totalWin / winTxn.length;
+  const totalLoss = lossTxns.reduce(
+    (s, t) => s + (t.buy.Close - t.sell.Close),
+    0
+  );
+  const lossAvg = totalLoss / lossTxns.length;
+  const totalProfit = transactions.reduce(
+    (s, t) => s + (t.sell.Close - t.buy.Close),
     0
   );
 
-  stats.winMultiple = stats.winAvg / stats.lossAvg;
-  stats.expectancy = stats.totalProfit / stats.totalPlayed;
+  const winMultiple = winAvg / lossAvg;
+  const expectancy = totalProfit / totalPlayed;
 
-  return stats;
+  return {
+    "Total Transcations": transactions.length,
+    Wins: wins,
+    Losses: losses,
+    "Win Percentage": winPercentage,
+    "Win Average": winAvg,
+    "Loss Average": lossAvg,
+    "Total Profit": totalProfit,
+    "Win Multiple": winMultiple,
+    Expentency: expectancy
+  };
 };
 
 const drawStatsTable = stats => {
@@ -219,7 +225,7 @@ const drawStatsTable = stats => {
 
   Object.keys(stats).forEach(key => {
     const row = table.append("tr");
-    row.append("td").text(key);
+    row.append("th").text(key);
     row.append("td").text(Math.round(stats[key]));
   });
 };
@@ -230,7 +236,7 @@ const drawEquityChart = quotes => {
   updatePrices(quotes);
   drawRangebar(quotes);
   const transactions = recordTransaction(quotes);
-  const stats = getStats(transactions);
+  const stats = createStats(transactions);
   drawTransactionTable(transactions);
   drawStatsTable(stats);
 };
