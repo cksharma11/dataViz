@@ -17,13 +17,13 @@ svg {
 }
 
 .close {
-  fill : none;
+  fill: none;
   stroke: black;
   stroke-width: 3px;
 }
 
 .sma {
-  fill : none;
+  fill: none;
   stroke: blue;
   stroke-width: 2px;
 }
@@ -34,11 +34,15 @@ svg {
 
 #slider-container {
   position: relative;
-  height:25px;
+  height: 25px;
   background-color: #eeeef5;
 }
 
 #range-label {
   text-align: center;
   font-weight: bold;
+}
+
+.stats {
+  display: flex;
 }

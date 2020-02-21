@@ -1,4 +1,4 @@
-const chartSize = { width: 1400, height: 700 };
+const chartSize = { width: 1400, height: 600 };
 const margin = { left: 100, right: 10, top: 20, bottom: 150 };
 const height = chartSize.height - margin.top - margin.bottom;
 const width = chartSize.width - margin.left - margin.right;
@@ -15,6 +15,53 @@ const analyseData = quotes => {
   for (let i = span; i <= quotes.length; i++) {
     quotes[i - 1].sma = get100DayAverage(quotes, i, 100);
   }
+};
+
+const recordTransaction = quotes => {
+  const transactions = [];
+  let transaction = {};
+
+  quotes.forEach(quote => {
+    const { Close: closePrice, sma } = quote;
+    if (closePrice > sma && !transaction.buy) {
+      transaction.buy = quote;
+    }
+    if (transaction.buy && closePrice < sma) {
+      transaction.sell = quote;
+      transaction.margin = _.round(
+        transaction.sell.Close - transaction.buy.Close
+      );
+      transactions.push(transaction);
+      transaction = {};
+    }
+  });
+
+  return transactions;
+};
+
+const getTransactionTableData = transaction => {
+  const buying = Object.values(transaction.buy);
+  const closing = Object.values(transaction.sell);
+  const [buyDate, , , , buyingPrice] = buying;
+  const [sellingDate, , , , sellingPrice] = closing;
+  const { margin } = transaction;
+  return [buyDate, buyingPrice, sellingDate, sellingPrice, margin];
+};
+
+const drawTransactionTable = transactions => {
+  const tr = d3
+    .select("#transaction-table")
+    .selectAll("tr")
+    .data(transactions)
+    .enter()
+    .append("tr");
+
+  const td = tr
+    .selectAll("td")
+    .data(getTransactionTableData)
+    .enter()
+    .append("td")
+    .text(d => d);
 };
 
 const initChart = () => {
@@ -72,7 +119,7 @@ const getRangeData = (quotes, startDate, endDate) => {
   return rangeQuotes;
 };
 
-const createRangeBar = quotes => {
+const drawRangebar = quotes => {
   const startDate = _.first(quotes).time.getTime();
   const lastDate = _.last(quotes).time.getTime();
 
@@ -137,11 +184,55 @@ const toNumericFormat = ({ Date, Volume, AdjClose, ...rest }) => {
   return { Date, ...rest, time: new this.Date(Date) };
 };
 
+const getStats = transactions => {
+  const stats = {};
+  stats.totalPlayed = transactions.length;
+  const winTxn = transactions.filter(tr => tr.sell.Close >= tr.buy.Close);
+  const lossesTxn = transactions.filter(tr => tr.sell.Close < tr.buy.Close);
+
+  stats.wins = winTxn.length;
+  stats.losses = lossesTxn.length;
+
+  stats.winPercentage = (winTxn.length / stats.totalPlayed) * 100;
+
+  stats.winAvg =
+    winTxn.reduce((sum, tr) => sum + (tr.sell.Close - tr.buy.Close), 0) /
+    winTxn.length;
+
+  stats.lossAvg =
+    lossesTxn.reduce((sum, tr) => sum + (tr.buy.Close - tr.sell.Close), 0) /
+    lossesTxn.length;
+
+  stats.totalProfit = transactions.reduce(
+    (sum, tr) => sum + (tr.sell.Close - tr.buy.Close),
+    0
+  );
+
+  stats.winMultiple = stats.winAvg / stats.lossAvg;
+  stats.expectancy = stats.totalProfit / stats.totalPlayed;
+
+  return stats;
+};
+
+const drawStatsTable = stats => {
+  const table = d3.select("#stats-table");
+
+  Object.keys(stats).forEach(key => {
+    const row = table.append("tr");
+    row.append("td").text(key);
+    row.append("td").text(Math.round(stats[key]));
+  });
+};
+
 const drawEquityChart = quotes => {
   initChart();
   analyseData(quotes, 100);
   updatePrices(quotes);
-  createRangeBar(quotes);
+  drawRangebar(quotes);
+  const transactions = recordTransaction(quotes);
+  const stats = getStats(transactions);
+  drawTransactionTable(transactions);
+  drawStatsTable(stats);
 };
 
 const main = () => {
